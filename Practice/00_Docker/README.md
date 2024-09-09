@@ -66,7 +66,9 @@ CLI reference: https://docs.docker.com/compose/reference/
 
 To start up all the services:  
 `docker compose up -d`  
-Note: you need to be in the right directory  
+Note: you need to be in the right directory.  
+Alternatively, define the compose file location, e.g.:
+`docker compose -f Practice/00_Docker/compose.yml up -d`  
 Use `-d` flag to start services in detached mode.  
 
 You can check that if you have multiple services, they can communicate directly between each other.  
@@ -78,10 +80,14 @@ print(r.read())
 ```   
 
 To stop services:  
-`docker compose stop`
+`docker compose stop`  
+or 
+`docker compose -f Practice/00_Docker/compose.yml stop`
 
 To stop and remove containers:  
 `docker compose down` 
+or 
+`docker compose -f Practice/00_Docker/compose.yml down`
 
 Review the .yml file  
 * Versioning
