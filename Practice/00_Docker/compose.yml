@@ -5,7 +5,7 @@ services:
     image: python:3.12.5-bookworm
     container_name: my_python
     environment:
-      MY_SUPER_VARIABLE: superduper
+      MY_SUPER_VARIABLE: superduper2
     stdin_open: true
     tty: true 
     networks:
