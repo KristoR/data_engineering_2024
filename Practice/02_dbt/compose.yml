@@ -1,0 +1,46 @@
+
+services:
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.8.2
+    container_name: dbt
+    tty: true
+    volumes:
+      - ../mnt/tmp/02_dbt/dbt_project:/usr/app
+      - ../mnt/tmp/02_dbt/.dbt:/root/.dbt
+    entrypoint: bash
+    ports:
+      - 18080:8080
+    networks:
+      - dwh
+  pg:
+    container_name: pg 
+    build:
+      context: .
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: test_db 
+    ports:
+      - 5432:5432
+    volumes:
+      - pg_data:/var/lib/postgresql/data/ 
+    networks:
+      - dwh
+  pgadmin:
+    container_name: pgadmin
+    image: elestio/pgadmin:REL-8_10
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root 
+    volumes:
+      - ../mnt/tmp/02_dbt/pgadmin_data:/var/lib/pgadmin
+    ports:
+      - 5050:80
+    networks:
+      - dwh
+
+networks:
+  dwh:
+
+volumes:
+  pg_data:
