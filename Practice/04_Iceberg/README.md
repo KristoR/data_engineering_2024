@@ -41,12 +41,18 @@ file_name = "gh4g-9sfh.json"
 s3_url = f"s3://{bucket_name}/{file_name}"
 
 # Read data from the MinIO bucket using DuckDB into a pyarrow dataframe
-df = conn.sql(f"SELECT * FROM read_json('{s3_url}')").arrow()
+conn.sql(f"SELECT * FROM read_json('{s3_url}')")
+
+# Create a table named "tmp" based on the JSON data.
+conn.sql(f"CREATE TABLE tmp AS SELECT * FROM read_json('{s3_url}')")
 ``` 
 
 We can also write back to S3. When we partition the parquet file, observe the folder structure.
 
-`conn.sql("COPY (SELECT name,id FROM tmp) TO 's3://practice-bucket/test.parquet' (FORMAT PARQUET, PARTITION_BY (year))")`
+
+`conn.sql("COPY (SELECT id, name FROM tmp) TO 's3://practice-bucket/test.parquet' (FORMAT PARQUET)")`
+
+`conn.sql("COPY tmp TO 's3://practice-bucket/partition_by_year.parquet' (FORMAT PARQUET, PARTITION_BY (year))")`
 
 We can test various writing strategies
 `conn.sql("COPY (SELECT * FROM tmp WHERE year LIKE '200%') TO 's3://practice-bucket/partition_by_year.parquet' (FORMAT PARQUET, PARTITION_BY (year))")`  
