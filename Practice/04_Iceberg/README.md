@@ -10,7 +10,9 @@ Upload it to minio using minio UI in the browser
 `localhost:9001`  
 (alternatives: client `mc`, python package `minio`)  
 
-We can now query it from duckdb. 
+Note: first create a bucket, e.g., `practice-bucket` with default options.
+
+We can now query this JSON file from duckdb. 
 
 Exec into the container  
 `docker exec -it duckdb bash`
@@ -49,9 +51,13 @@ conn.sql(f"CREATE TABLE tmp AS SELECT * FROM read_json('{s3_url}')")
 
 We can also write back to S3. When we partition the parquet file, observe the folder structure.
 
+Copy entire table:  
+`conn.sql("COPY tmp TO 's3://practice-bucket/test.parquet' (FORMAT PARQUET)")`
 
+Copy the result of a query:  
 `conn.sql("COPY (SELECT id, name FROM tmp) TO 's3://practice-bucket/test.parquet' (FORMAT PARQUET)")`
 
+Copy as a partitioned parquet file:  
 `conn.sql("COPY tmp TO 's3://practice-bucket/partition_by_year.parquet' (FORMAT PARQUET, PARTITION_BY (year))")`
 
 We can test various writing strategies
@@ -70,44 +76,74 @@ Read a partitioned parquet file:
 
 ## Iceberg
 
-Make a folder `./iceberg_catalog` in your duckdb data folder.  
-
-Add a file `.pyiceberg.yaml` in your duckdb data folder. 
-
-With the content:  
+Add the following as a `.pyiceberg.yaml` in your `duckdb_data` folder:  
 ```
 catalog:
-  local:
-    uri: sqlite:///iceberg_catalog/catalog.db
-    warehouse: file://iceberg_catalog
+  rest:
+    uri: http://iceberg_rest:8181/
+    s3.endpoint: http://minio:9000
+    s3.access-key-id: minioadmin
+    s3.secret-access-key: minioadmin
+    warehouse: warehouse
 ```
 
-In Python, execute the following:
-```
-import os
-
-os.environ['PYICEBERG_HOME'] = os.getcwd()
-```
-
+Run the following 
 ```
 from pyiceberg.catalog import load_catalog
+from pyiceberg.schema import Schema, NestedField
+from pyiceberg.types import IntegerType, StringType
+import pyarrow as pa
 
-catalog = load_catalog(name='local')
-```
+catalog = load_catalog(name="rest")
+namespace = "default"
+table_name = "tmp_table"
+catalog.create_namespace(namespace)
 
-You can view the catalog information:  
-`print(catalog.properties)`
+arrow_table = conn.sql("SELECT * FROM tmp").arrow()
+schema = arrow_table.schema
 
-Creating a table 
-```
-from pyiceberg.schema import Schema
-from pyiceberg.types import NestedField, IntegerType, StringType
-
-schema = Schema(
-  NestedField(field_id=1, name='id', field_type=IntegerType(), required=True),
-  NestedField(field_id=2, name='name', field_type=StringType(), required=True),
+table = catalog.create_table(
+    identifier=f"{namespace}.{table_name}",
+    schema=schema,
 )
+
+table.append(arrow_table)
+
 ```
 
-### Task:
-Read data and write data to the Iceberg catalog using `duckdb`, `pyiceberg` and `pyarrow` packages.
+To read data in DuckDB, we need to store the PyIceberg table as an Arrow table.  
+
+```
+arrow_table_read_example = table.scan().to_arrow()
+```
+
+We can now query this variable directly in DuckDB.
+
+```
+conn.sql("SELECT * FROM arrow_table_read_example")
+```
+
+
+For getting the table snapshot at a specific timestamp you can use `table.snapshot_as_of_timestamp`  
+(https://py.iceberg.apache.org/reference/pyiceberg/table/#pyiceberg.table.Table.snapshot_as_of_timestamp)
+
+Or you can query it based on the snapshot id `table.snapshot_by_id`  
+(https://py.iceberg.apache.org/reference/pyiceberg/table/#pyiceberg.table.Table.snapshot_by_id)
+
+```
+for snapshot in table.snapshots():
+    print(f"Snapshot ID: {snapshot.snapshot_id}, Timestamp: {snapshot.timestamp_ms}")
+```
+
+If you want to restore to a previous version, you can use the table scan based on the snapshot id and overwrite the table.   
+```
+snapshot_id = # fill me
+table.overwrite(table.scan(snapshot_id=snapshot_id).to_arrow())
+```
+
+You can also view the manifest files from Minio UI.
+
+For a more comprehensive overview:  
+https://py.iceberg.apache.org/api/
+
+
