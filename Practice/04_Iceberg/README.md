@@ -124,6 +124,9 @@ conn.sql("SELECT * FROM arrow_table_read_example")
 ```
 
 
+For loading an existing Iceberg table you can use `catalog.load_table()` functionality:  
+`new_table_loaded = catalog.load_table("default.tmp_table")`
+
 For getting the table snapshot at a specific timestamp you can use `table.snapshot_as_of_timestamp`  
 (https://py.iceberg.apache.org/reference/pyiceberg/table/#pyiceberg.table.Table.snapshot_as_of_timestamp)
 
@@ -137,7 +140,7 @@ for snapshot in table.snapshots():
 
 If you want to restore to a previous version, you can use the table scan based on the snapshot id and overwrite the table.   
 ```
-snapshot_id = # fill me
+snapshot_id = 9183879805595325666
 table.overwrite(table.scan(snapshot_id=snapshot_id).to_arrow())
 ```
 
