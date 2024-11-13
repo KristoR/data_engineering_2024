@@ -10,6 +10,9 @@ The last service to start should be `openmetadata_server`. Once it starts, it ca
 Move or copy files from `./data` to `../mnt/tmp/05_openmetadata/duckdb_data`, e.g. in bash:  
 `cp ./data/* ../mnt/tmp/05_openmetadata/duckdb_data/`
 
+Make sure to include the `.pyiceberg.yaml` file:  
+`cp ./data/.pyiceberg.yaml ../mnt/tmp/05_openmetadata/duckdb_data/`
+
 Go into the DuckDB container and initiate the iceberg script.
 `docker exec -it duckdb bash`  
 
@@ -32,8 +35,9 @@ Let's first look at how to connect to Iceberg.
 Settings --> Services --> Databases --> Add New Service --> Iceberg 
 
 The name is up to you, what is important are the following connection parameters:  
-`http://iceberg_rest:8181`  
-`minioadmin` for user/pass
+Connection: `RestCatalogConnection`   
+URI: `http://iceberg_rest:8181`  
+Client ID/Secret: `minioadmin`  
 
 You can then see the Iceberg tables under `Explore` in the UI, or search for the tables.  
 For further information what you can do: https://docs.open-metadata.org/latest/how-to-guides
