@@ -1,0 +1,11 @@
+  services:
+    sl:
+      container_name: sl
+      build:
+        context: . # Build from the Dockerfile
+      volumes:
+        - ./app:/app  # Bind mount the app directory for dynamic updates
+      ports:
+        - "8501:8501"  # Map Streamlit port to localhost
+        - "8502:8502"  # Map alternative port to localhost
+        
